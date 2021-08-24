@@ -1,6 +1,4 @@
-import pandas as pd
-from scripts import sentiment_emotion
-from scripts import json_handler
+from scripts import sentiment_emotion, json_handler
 
 def main():
     # The line below was used to pass the csv values to a JSON file initially, 
@@ -9,11 +7,10 @@ def main():
     # json_handler.data_to_json('data/TrainingDS.csv')
     json_data = json_handler.load_json('data/TrainingDS.json')
 
-    processed_json_data = sentiment_emotion.paralleldots_classification(0, 3, json_data)
+    # Batches, because the API has a 1000 request limit per day
+    processed_json_data = sentiment_emotion.paralleldots_classification(200, 210, json_data)
     json_handler.json_out(processed_json_data, 'data/TrainingDS.json')
 
-
-    #sentiment_emotion.Test(json_file)
 
 if __name__ == "__main__":
     main()
