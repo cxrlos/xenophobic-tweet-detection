@@ -1,8 +1,5 @@
 import csv
 import json
-import pandas as pd
-from flatten_json import flatten
-
 
 def load_json(fp):
     with open(fp) as f:
