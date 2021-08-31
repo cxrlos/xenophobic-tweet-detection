@@ -1,5 +1,7 @@
 import csv
 import json
+import pandas as pd
+from flatten_json import flatten
 
 
 def load_json(fp):
@@ -19,3 +21,4 @@ def data_to_json(input_fp):
         for row in csvReader: 
             jsonArray.append(row)
     json_out(jsonArray, 'data/TrainingDS.json')
+
