@@ -32,6 +32,5 @@ def paralleldots_classification(start, end, json_data):
         response = paralleldots.intent(json_data[i]['Text'])
         json_data[i].update(response)
         print("OK")
-        print(response)
         print("-----------------------------------------------")
     return json_data
