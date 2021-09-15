@@ -11,11 +11,11 @@ def json_out(data, output_fp):
         jsonString = json.dumps(data, indent=4)
         jsonf.write(jsonString)
 
-def data_to_json(input_fp):
+def data_to_json(input_fp, output_fp):
     jsonArray = []
     with open(input_fp, encoding='utf-8') as csvf: 
         csvReader = csv.DictReader(csvf) 
         for row in csvReader: 
             jsonArray.append(row)
-    json_out(jsonArray, 'data/TrainingDS.json')
+    json_out(jsonArray, output_fp)
 

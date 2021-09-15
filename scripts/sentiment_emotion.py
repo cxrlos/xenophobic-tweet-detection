@@ -13,7 +13,7 @@ def paralleldots_classification(start, end, json_data):
         # Rate limit, prevents documents from becoming unlabeled
         if(i%6==0 and i!=0):
             print("Waiting for rate limit to pass, saving progress...")
-            json_handler.json_out(json_data, 'data/TrainingDS.json')
+            json_handler.json_out(json_data, 'data/TestingDS.json')
             time.sleep(60)
             print("-----------------------------------------------")
 
