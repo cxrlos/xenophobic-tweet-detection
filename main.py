@@ -22,11 +22,16 @@ def main():
     # print("\n\n\n-----------------------------------------------")
     # print("To convert the output JSON file, please use https://data.page/json/csv")
     # print("-----------------------------------------------\n\n\n")
-    mod_train_set = calculated_features.percentageSpecialChars('./data/Processed_Training.csv')
-    mod_test_set = calculated_features.percentageSpecialChars('./data/Processed_Testing.csv')
+    # mod_train_set = calculated_features.percentageSpecialChars('./data/Processed_Training.csv')
+    # mod_test_set = calculated_features.percentageSpecialChars('./data/Processed_Testing.csv')
+    # calculated_features.listToCSV(mod_train_set, './data/deliveries/delivery-4/Processed_Training.csv')
+    # calculated_features.listToCSV(mod_test_set, './data/deliveries/delivery-4/Processed_Testing.csv')
 
-    calculated_features.listToCSV(mod_train_set, './data/deliveries/delivery-3/Processed_Training.csv')
-    calculated_features.listToCSV(mod_test_set, './data/deliveries/delivery-3/Processed_Testing.csv')
+    mod_train_set= calculated_features.percentageCaps('./data/Processed_Training.csv') 
+    mod_test_set = calculated_features.percentageCaps('./data/Processed_Testing.csv') 
+    calculated_features.listToCSV(mod_train_set, './data/deliveries/delivery-4/Processed_Training.csv')
+    calculated_features.listToCSV(mod_test_set, './data/deliveries/delivery-4/Processed_Testing.csv')
+
 
 
 if __name__ == "__main__":
