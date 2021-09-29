@@ -1,38 +1,49 @@
-# from scripts import sentiment_emotion, json_handler
-from scripts import calculated_features
+import pandas as pd
+from numpy import ravel 
+from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
+
+def csvToPandas(path, columns):
+    df = pd.read_csv(path, usecols = columns)
+    return df
+
+def pandasToKaggle(path, df):
+    df.to_csv(path, index=True, index_label=['ID'], header=["Class"])
 
 def main():
-    # print("\n\n\n-----------------------------------------------")
-    # print("Due to API limitations anc frequent errors, processing more than 200 elements is not recommended.")
-    # print("-----------------------------------------------\n\n\n")
+    attributes = [
+            "sentiment/negative", 
+            "sentiment/positive",
+            "emotion/Bored",
+            "emotion/Angry",
+            "emotion/Sad",
+            "emotion/Fear",
+            "emotion/Excited",
+            "emotion/Happy",
+            "intent/spam",
+            "intent/feedback/tag/complaint",
+            "exclamation_counter", 
+            "caps_counter"]
 
-    # a = int(input("Enter the number of the first element to process... "))
-    # b = int(input("Enter the number of the last element to process... "))
+    classes = ["Class"]
 
-    # Pass the csv values to a JSON file
-    # json_handler.data_to_json('data/TestingDS.csv', 'data/TestingDS.json')
-    # json_data = json_handler.load_json('data/TestingDS.json')
+    # Read data from CSVs into pandas dataframe
+    trainingDF = csvToPandas("./data/TrainingDS.csv", attributes)
+    trainingClassesDF = ravel(csvToPandas("./data/TrainingDS.csv", classes))
+    testingDF = csvToPandas("./data/TestingDS.csv", attributes)
+    
+    # Ada classifier
+    ada = AdaBoostClassifier(n_estimators = 45, learning_rate=1.1)
+    ada.fit(trainingDF, trainingClassesDF)
+    adaDF = pd.DataFrame(ada.predict(testingDF))
+    adaDF.index += 1
+    pandasToKaggle("./data/Ada_Kaggle.csv", adaDF)
 
-    # Batches, because the API has a 1000 request limit per day
-    # processed_json_data = sentiment_emotion.paralleldots_classification(a-1, b, json_data)
-    # json_handler.json_out(processed_json_data, 'data/TestingDS.json')
+    # Bagging classifier
+    bagging = BaggingClassifier(n_estimators = 10)
+    bagging.fit(trainingDF, trainingClassesDF)
+    baggingDF = pd.DataFrame(bagging.predict(testingDF))
+    baggingDF.index += 1
+    pandasToKaggle("./data/Bagging_Kaggle.csv", baggingDF)
 
-    # Tried a lot of methods to implement a JSON to CSV method but had datatype
-    # issues. Used an online tool instead.
-    # print("\n\n\n-----------------------------------------------")
-    # print("To convert the output JSON file, please use https://data.page/json/csv")
-    # print("-----------------------------------------------\n\n\n")
-    # mod_train_set = calculated_features.percentageSpecialChars('./data/Processed_Training.csv')
-    # mod_test_set = calculated_features.percentageSpecialChars('./data/Processed_Testing.csv')
-    # calculated_features.listToCSV(mod_train_set, './data/deliveries/delivery-4/Processed_Training.csv')
-    # calculated_features.listToCSV(mod_test_set, './data/deliveries/delivery-4/Processed_Testing.csv')
-
-    mod_train_set= calculated_features.percentageCaps('./data/Processed_Training.csv') 
-    mod_test_set = calculated_features.percentageCaps('./data/Processed_Testing.csv') 
-    calculated_features.listToCSV(mod_train_set, './data/deliveries/delivery-4/Processed_Training.csv')
-    calculated_features.listToCSV(mod_test_set, './data/deliveries/delivery-4/Processed_Testing.csv')
-
-
-
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
