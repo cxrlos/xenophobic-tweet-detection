@@ -1,49 +1,73 @@
 import pandas as pd
-from numpy import ravel 
-from sklearn.ensemble import AdaBoostClassifier, BaggingClassifier
 
-def csvToPandas(path, columns):
-    df = pd.read_csv(path, usecols = columns)
-    return df
+# Libraries used to clean tweets, saw an example for this on the following link:
+# https://stackoverflow.com/questions/64719706/cleaning-twitter-data-pandas-python
+import re, emoji
 
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import SGDClassifier
+
+trainingDS = pd.read_csv('./data/TrainingDS.csv')
+testingDS = pd.read_csv('./data/TestingDS.csv')
+
+# Copied from the previous delivery
 def pandasToKaggle(path, df):
     df.to_csv(path, index=True, index_label=['ID'], header=["Class"])
 
+# Deleted some data that might generate noise in the classification and bagging
+# process
+def cleaner(df):
+    arr = []
+    for instance in df["Text"]:
+        instance = " ".join(instance.split())
+
+        # Deletes emojis, links and continuity expressions (e.g. '(1/3)')
+        instance = re.sub(r"\([0-9]+/[0-9]+\)", "", instance)
+        instance = re.sub(r"(?:\@|http?\://|https?\://|www)\S+", "", instance)
+        instance = ''.join(c for c in instance if c not in emoji.EMOJI_UNICODE_ENGLISH)
+
+        # Deletes # and @ signs but keeps the text
+        instance = instance.replace("#", "").replace("_", " ")
+        instance = instance.replace("@", "").replace("_", " ")
+
+        arr.append(instance)
+    return pd.DataFrame(arr)
+
 def main():
-    attributes = [
-            "sentiment/negative", 
-            "sentiment/positive",
-            "emotion/Bored",
-            "emotion/Angry",
-            "emotion/Sad",
-            "emotion/Fear",
-            "emotion/Excited",
-            "emotion/Happy",
-            "intent/spam",
-            "intent/feedback/tag/complaint",
-            "exclamation_counter", 
-            "caps_counter"]
+    traindf = cleaner(trainingDS)
+    trainingDS["Text"] = traindf
 
-    classes = ["Class"]
-
-    # Read data from CSVs into pandas dataframe
-    trainingDF = csvToPandas("./data/TrainingDS.csv", attributes)
-    trainingClassesDF = ravel(csvToPandas("./data/TrainingDS.csv", classes))
-    testingDF = csvToPandas("./data/TestingDS.csv", attributes)
+    testdf = cleaner(testingDS)
+    testingDS["Text"] = testdf 
     
-    # Ada classifier
-    ada = AdaBoostClassifier(n_estimators = 45, learning_rate=1.1)
-    ada.fit(trainingDF, trainingClassesDF)
-    adaDF = pd.DataFrame(ada.predict(testingDF))
-    adaDF.index += 1
-    pandasToKaggle("./data/Ada_Kaggle.csv", adaDF)
+    # BoW
+    vectorizer = CountVectorizer()
+    vectorizer.fit(trainingDS["Text"])
+    training_bow_array = vectorizer.transform(trainingDS["Text"]).toarray()
+    testing_bow_array = vectorizer.transform(testingDS["Text"]).toarray()
 
-    # Bagging classifier
-    bagging = BaggingClassifier(n_estimators = 10)
-    bagging.fit(trainingDF, trainingClassesDF)
-    baggingDF = pd.DataFrame(bagging.predict(testingDF))
-    baggingDF.index += 1
-    pandasToKaggle("./data/Bagging_Kaggle.csv", baggingDF)
+    # SVM that was suggested today in class
+    svmClassifier = SVC(decision_function_shape='ovo')
+    svmClassifier.fit(training_bow_array, trainingDS['Class'])
+    svmDF = pd.DataFrame(svmClassifier.predict(testing_bow_array))
+    svmDF.index += 1
+    pandasToKaggle("./data/svm-submission.csv", svmDF)
 
-if __name__=="__main__":
+    # Random forest that was my best classifier in Weka
+    randomforestClassifier = RandomForestClassifier(n_estimators=100)
+    randomforestClassifier.fit(training_bow_array, trainingDS['Class'])
+    randomforestDF = pd.DataFrame(randomforestClassifier.predict(testing_bow_array))
+    randomforestDF.index += 1
+    pandasToKaggle("./data/randomforest-submission.csv", randomforestDF)
+
+    # I wanted to try a recommended classifier called SGD
+    sgdClassifier = SGDClassifier()
+    sgdClassifier.fit(training_bow_array, trainingDS['Class'])
+    sgdDF = pd.DataFrame(sgdClassifier.predict(testing_bow_array))
+    sgdDF.index += 1
+    pandasToKaggle("./data/sgd-submission.csv", sgdDF)
+
+if __name__ == "__main__":
     main()
