@@ -1,23 +1,24 @@
 import pandas as pd
+from numpy import ravel
 
 # Libraries used to clean tweets, saw an example for this on the following link:
 # https://stackoverflow.com/questions/64719706/cleaning-twitter-data-pandas-python
 import re, emoji
 
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.svm import SVC
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import SGDClassifier
+from nltk.tokenize import TweetTokenizer
+from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
+from sklearn.ensemble import ExtraTreesRegressor
 
-trainingDS = pd.read_csv('./data/TrainingDS.csv')
-testingDS = pd.read_csv('./data/TestingDS.csv')
+trainingDF = pd.read_csv('./data/TrainingDS.csv')
+testingDF = pd.read_csv('./data/TestingDS.csv')
 
-# Copied from the previous delivery
+vectorizer = CountVectorizer()
+transformer = TfidfTransformer(use_idf=False)
+classifier = ExtraTreesRegressor(n_estimators=265)
+
 def pandasToKaggle(path, df):
     df.to_csv(path, index=True, index_label=['ID'], header=["Class"])
 
-# Deleted some data that might generate noise in the classification and bagging
-# process
 def cleaner(df):
     arr = []
     for instance in df["Text"]:
@@ -28,46 +29,38 @@ def cleaner(df):
         instance = re.sub(r"(?:\@|http?\://|https?\://|www)\S+", "", instance)
         instance = ''.join(c for c in instance if c not in emoji.EMOJI_UNICODE_ENGLISH)
 
-        # Deletes # and @ signs but keeps the text
+        # Deletes numbers
+        instance = re.sub(r"[0-9]", "", instance)
+
+        # Deletes different signs or punctiuations and keeps the text
         instance = instance.replace("#", "").replace("_", " ")
         instance = instance.replace("@", "").replace("_", " ")
-
         arr.append(instance)
     return pd.DataFrame(arr)
 
 def main():
-    traindf = cleaner(trainingDS)
-    trainingDS["Text"] = traindf
+    trainingClean = cleaner(trainingDF)
+    trainingDF["Text"] = trainingClean
+    trainingText = trainingDF["Text"].tolist()
+    trainingClasses = ravel(trainingDF["Class"].to_numpy())
 
-    testdf = cleaner(testingDS)
-    testingDS["Text"] = testdf 
+    testingClean = cleaner(testingDF)
+    testingDF["Text"] = testingClean
+    testingText = testingDF["Text"].tolist()
     
-    # BoW
-    vectorizer = CountVectorizer()
-    vectorizer.fit(trainingDS["Text"])
-    training_bow_array = vectorizer.transform(trainingDS["Text"]).toarray()
-    testing_bow_array = vectorizer.transform(testingDS["Text"]).toarray()
+    trainingBoW = vectorizer.fit_transform(trainingText)
+    trainingTf = transformer.fit_transform(trainingBoW)
 
-    # SVM that was suggested today in class
-    svmClassifier = SVC(decision_function_shape='ovo')
-    svmClassifier.fit(training_bow_array, trainingDS['Class'])
-    svmDF = pd.DataFrame(svmClassifier.predict(testing_bow_array))
-    svmDF.index += 1
-    pandasToKaggle("./data/svm-submission.csv", svmDF)
+    testingBoW = vectorizer.transform(testingText)
+    testingTf = transformer.transform(testingBoW)
 
-    # Random forest that was my best classifier in Weka
-    randomforestClassifier = RandomForestClassifier(n_estimators=100)
-    randomforestClassifier.fit(training_bow_array, trainingDS['Class'])
-    randomforestDF = pd.DataFrame(randomforestClassifier.predict(testing_bow_array))
-    randomforestDF.index += 1
-    pandasToKaggle("./data/randomforest-submission.csv", randomforestDF)
+    modeling = classifier.fit(trainingTf, trainingClasses)
+    testingClasses = pd.DataFrame(modeling.predict(testingTf))
+    testingClasses.index += 1
+    pandasToKaggle("./data/final-submission.csv", testingClasses)
 
-    # I wanted to try a recommended classifier called SGD
-    sgdClassifier = SGDClassifier()
-    sgdClassifier.fit(training_bow_array, trainingDS['Class'])
-    sgdDF = pd.DataFrame(sgdClassifier.predict(testing_bow_array))
-    sgdDF.index += 1
-    pandasToKaggle("./data/sgd-submission.csv", sgdDF)
+    
 
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
+
